@@ -49,8 +49,11 @@ report = later.handoff.pickup_report(receipt.artifact_id)
 | `capture.ingest(batch_id, port)` | 返回证据号。未知批次报 `UnknownBatch`，结构错误或来源错绑报 `ValueError` 的对应子类。文件 I/O 错误由端口传出。 |
 | `evidence.get(evidence_id)` | 返回不可变的 `FixedEvidence`。未知证据报 `UnknownEvidence`。 |
 | `qualification.qualify_release(evidence_id)` | 返回 `PublishedArtifact` 和 `PublicationReceipt`。无完整解释报 `UnexplainableRecording`，发布事务失败报 `PublicationError`。 |
+| `qualification.qualify_release_review(evidence_id, costs, *, after_artifact=None)` | 按工时表签发复核计划，返回同型 `(PublishedArtifact, PublicationReceipt)`。工时表须恰好覆盖登记清册且每项为正整数。口径见 [REVIEW.md](REVIEW.md)。 |
 | `catalog.get(artifact_id)`、`catalog.get_receipt(artifact_id)` | 精确读取已签发成果和回执。缺记录分别报 `UnknownArtifact`、`UnknownReceipt`。 |
 | `handoff.pickup_report(artifact_id)` | 返回 `PickupReport`。未知成果报 `UnknownArtifact`。报告含完整曝光清单和待复检条目。 |
+| `handoff.pickup_review(artifact_id)` | 返回 `evidence_id`、按清册下标升序的所选 `exposure_ids` 元组和 `total_cost`。旧成果报 `ValueError` 说明无计划，未知成果报 `UnknownArtifact`。 |
+| `handoff.resolve_review(artifact_id, answers)` | 按答复返回清册顺序的 `(exposure_id, SourceReading \| None)` 外层元组。只读，不新增成果。 |
 
 `RecordingPort` 提供 `read()` 和 `close()`。调用方负责关闭端口。`EvidenceArchive.store` 接收已按对应批次验证的结构化通道和封账，`CaptureService.ingest` 是外部录制的校验入口。发布接口可接收 `after_artifact` 回调，回调在 SQLite 插入成果之后、插入回执之前调用。回调抛错时发布回滚，旧成果仍按原号可读。持久库以已验证录制和应用接口写入为前提。
 
@@ -61,9 +64,14 @@ report = later.handoff.pickup_report(receipt.artifact_id)
 ```sh
 python3 -B -m unittest discover -s tests -t . -v
 python3 -B -m station demo
+python3 -B -m review_examples baseline
+python3 -B -m review_examples verify
+python3 -B -m review_examples demo
 ```
 
 演示用临时归档签发两卷，关闭端口后重开归档，按第一份成果号打印完整清单、待复检条目和原样出处。每个回归用独立的临时归档，覆盖登记和接纳拒绝、同拍换接、零值与同值异事件、无解拒发、事务回滚和按固定号取件。
+
+`review_examples` 的 `baseline` 核对原待复检清单，`verify` 执行原全部回归加新交班对照，`demo` 展示签发、关源重开及两种实答的原出处。交接操作见 [HANDOFF.md](HANDOFF.md)。
 
 日常命令也可分开执行。下面的编号适用于新归档，复用归档时使用上一步实际返回的编号。
 

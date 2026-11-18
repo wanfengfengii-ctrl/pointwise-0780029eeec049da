@@ -38,3 +38,12 @@ class PublicationStore:
                         REFERENCES artifacts (artifact_id, evidence_id)
                 )"""
             )
+            connection.execute(
+                """CREATE TABLE IF NOT EXISTS review_plans (
+                    artifact_id INTEGER PRIMARY KEY,
+                    evidence_id INTEGER NOT NULL,
+                    payload TEXT NOT NULL,
+                    FOREIGN KEY (artifact_id, evidence_id)
+                        REFERENCES artifacts (artifact_id, evidence_id)
+                )"""
+            )
